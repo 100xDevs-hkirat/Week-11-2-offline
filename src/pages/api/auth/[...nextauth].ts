@@ -1,11 +1,23 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import {Provider} from "next-auth/providers";
+import { ensureDbConnected } from '@/lib/dbConnect';
+import { Admin } from "@/lib/db";
+
+import GoogleProvider from "next-auth/providers/google"
 
 export const authOptions = {
     // Configure one or more authentication providers
     providers: [
-        CredentialsProvider({
+        GoogleProvider({
+            clientId: process.env.NEXT_GOOGLE_CLIENT_ID,
+            clientSecret: process.env.NEXT_GOOGLE_CLIENT_SECRET,
+        }),
+        CredentialsProvider<
+            {
+                username: { label: "Username", type: "text", placeholder: "jsmith" },
+                password: { label: "Password", type: "password" }
+            }>({
             id: "credentials",
             name: "Credentials",
             type: "credentials",
@@ -14,26 +26,49 @@ export const authOptions = {
                 password: { label: "Password", type: "password" }
             },
             async authorize(credentials, req) {
+                await ensureDbConnected()
+                if (!credentials) {
+                    return null;
+                }
+                const username = credentials.username;
+                const password = credentials.password;
                 // Add logic here to look up the user from the credentials supplied
-                const user = { id: "1", name: "J Smith", email: "jsmith@example.com" }
+                const admin = await Admin.findOne({ username });
 
-                if (user) {
-                    // Any object returned will be saved in `user` property of the JWT
-                    return user
+                if (!admin) {
+                    const obj = { username: username, password: password };
+                    const newAdmin = new Admin(obj);
+                    let adminDb = newAdmin.save();
+                    return {
+                        id: adminDb._id,
+                        email: adminDb.username,
+                    }
                 } else {
-                    // If you return null then an error will be displayed advising the user to check their details.
-                    return null
-
-                    // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
+                    //TODO:: Make this safer, encrypt passwords
+                    if (admin.password !== password) {
+                        return null
+                    }
+                    // User is authenticated
+                    return {
+                        id: admin._id,
+                        email: admin.username,
+                    }
                 }
             }
         }),
     ] as Provider[],
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: "secret",
     session: {
         strategy: "jwt",
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
+    jwt: {
+        encryption: true
+    },
 }
 
 export default NextAuth(authOptions)
+
+
+
+
