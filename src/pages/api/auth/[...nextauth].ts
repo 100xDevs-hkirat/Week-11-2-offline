@@ -13,11 +13,7 @@ export const authOptions = {
             clientId: process.env.NEXT_GOOGLE_CLIENT_ID,
             clientSecret: process.env.NEXT_GOOGLE_CLIENT_SECRET,
         }),
-        CredentialsProvider<
-            {
-                username: { label: "Username", type: "text", placeholder: "jsmith" },
-                password: { label: "Password", type: "password" }
-            }>({
+        CredentialsProvider({
             id: "credentials",
             name: "Credentials",
             type: "credentials",
@@ -38,7 +34,8 @@ export const authOptions = {
                 if (!admin) {
                     const obj = { username: username, password: password };
                     const newAdmin = new Admin(obj);
-                    let adminDb = newAdmin.save();
+                    let adminDb = await newAdmin.save();
+                    console.log(adminDb);
                     return {
                         id: adminDb._id,
                         email: adminDb.username,
@@ -57,7 +54,7 @@ export const authOptions = {
             }
         }),
     ] as Provider[],
-    secret: "secret",
+    secret: process.env.NEXTAUTH_SECRET,
     session: {
         strategy: "jwt",
         maxAge: 30 * 24 * 60 * 60, // 30 days
