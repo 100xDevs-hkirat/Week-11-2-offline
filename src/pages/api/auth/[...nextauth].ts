@@ -6,7 +6,9 @@ import { Admin, User } from "@/lib/db";
 import bcrypt from 'bcrypt';
 
 
-import GoogleProvider from "next-auth/providers/google"
+import GoogleProvider from "next-auth/providers/google";
+import GithubProvider from "next-auth/providers/github";
+
 const saltRound = 10;
 
 export const authOptions = {
@@ -15,6 +17,10 @@ export const authOptions = {
         GoogleProvider({
             clientId: process.env.NEXT_GOOGLE_CLIENT_ID,
             clientSecret: process.env.NEXT_GOOGLE_CLIENT_SECRET,
+        }),
+        GithubProvider({
+            clientId: process.env.NEXT_GITHUB_CLIENT_ID,
+            clientSecret: process.env.NEXT_GITHUB_CLIENT_SECRET
         }),
         CredentialsProvider({
             id: "adminCredential",
